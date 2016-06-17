@@ -259,6 +259,8 @@ public class Grid : MonoBehaviour
 
                 piece1.MovableComponent.Move(piece2.X, piece2.Y, fillTime);
                 piece2.MovableComponent.Move(piece1X, piece1Y, fillTime);
+
+                ClearAllValidMatches();
             }
             else
             {
@@ -499,5 +501,48 @@ public class Grid : MonoBehaviour
         }
 
         return null;
+    }
+
+    public bool ClearAllValidMatches()
+    {
+        bool needRefill = false;
+
+        for (int y = 0; y < numberOfColumns; y++)
+        {
+            for (int x = 0; x < numberOfRows; x++)
+            {
+                if (pieces[x, y].IsClearable())
+                {
+                    List<GamePiece> match = GetMatch(pieces[x, y], x, y);
+
+                    if (match != null)
+                    {
+                        for (int i = 0; i < match.Count; i++)
+                        {
+                            if (ClearPiece(match[i].X, match[i].Y))
+                            {
+                                needRefill = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return needRefill;
+    }
+
+    public bool ClearPiece(int x, int y)
+    {
+        if (pieces[x, y].IsClearable() 
+            && !pieces[x, y].ClearableComponent.IsBeingCleared)
+        {
+            pieces[x, y].ClearableComponent.Clear();
+            SpawnNewPiece(x, y, PieceType.EMPTY);
+
+            return true;
+        }
+
+        return false;
     }
 }
