@@ -110,7 +110,8 @@ public class Grid : MonoBehaviour
 
                     if (pieceBelow.Type == PieceType.EMPTY)
                     {
-                        piece.MovableComponent.Move(x, y + 1);
+                        Destroy(pieceBelow.gameObject);
+                        piece.MovableComponent.Move(x, y + 1, fillTime);
                         pieces[x, y + 1] = piece;
                         SpawnNewPiece(x, y, PieceType.EMPTY);
                         movedPiece = true;
@@ -126,6 +127,7 @@ public class Grid : MonoBehaviour
 
             if (pieceBelow.Type == PieceType.EMPTY)
             {
+                Destroy(pieceBelow.gameObject);
                 GameObject newPiece =
                     (GameObject)
                         Instantiate(piecePrefabDictionary[PieceType.NORMAL], 
@@ -135,7 +137,7 @@ public class Grid : MonoBehaviour
 
                 pieces[x, 0] = newPiece.GetComponent<GamePiece>();
                 pieces[x, 0].Init(x, -1, this, PieceType.NORMAL);
-                pieces[x, 0].MovableComponent.Move(x, 0);
+                pieces[x, 0].MovableComponent.Move(x, 0, fillTime);
                 pieces[x, 0].ShapeComponent.SetShape(
                     (ShapePiece.ShapeType)Random.Range(0, pieces[x, 0].ShapeComponent.NumShapes));
                 movedPiece = true;
