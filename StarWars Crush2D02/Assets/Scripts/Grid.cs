@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class Grid : MonoBehaviour
 {
@@ -51,8 +52,8 @@ public class Grid : MonoBehaviour
             for (int y = 0; y < numberOfColumns; y++)
             {
                 GameObject background = (GameObject)Instantiate(
-                    backgroundPrefab, 
-                    GetWorldPositin(x, y, 0), 
+                    backgroundPrefab,
+                    GetWorldPositin(x, y, 0),
                     Quaternion.identity);
                 background.transform.parent = transform; //Making background a child of the grid object
             }
@@ -198,7 +199,7 @@ public class Grid : MonoBehaviour
                 Destroy(pieceBelow.gameObject);
                 GameObject newPiece =
                     (GameObject)
-                        Instantiate(piecePrefabDictionary[PieceType.NORMAL], 
+                        Instantiate(piecePrefabDictionary[PieceType.NORMAL],
                         GetWorldPositin(x, -1, -1),
                             Quaternion.identity);
                 newPiece.transform.parent = transform;
@@ -217,15 +218,15 @@ public class Grid : MonoBehaviour
 
     public Vector3 GetWorldPositin(int x, int y, float z)
     {
-        return new Vector3(transform.position.x - numberOfRows / 2.0f + x, 
+        return new Vector3(transform.position.x - numberOfRows / 2.0f + x,
             transform.position.y + numberOfColumns / 2.0f - y - 0.5f, z);
     }
 
     public GamePiece SpawnNewPiece(int x, int y, PieceType type)
     {
         GameObject newPiece = (GameObject)Instantiate(
-            piecePrefabDictionary[type], 
-            GetWorldPositin(x, y, -1), 
+            piecePrefabDictionary[type],
+            GetWorldPositin(x, y, -1),
             Quaternion.identity);
         newPiece.transform.parent = transform;
 
@@ -240,8 +241,8 @@ public class Grid : MonoBehaviour
         // check if two pieces are next to each other(in the same row)
         // and their Y coords are one space of each other  
         // or are next to each other by column and their X coords are one space of each other
-        return (piece1.X == piece2.X && (int) Mathf.Abs(piece1.Y - piece2.Y) == 1)
-            || (piece1.Y == piece2.Y && (int) Mathf.Abs(piece1.X - piece2.X) == 1);
+        return (piece1.X == piece2.X && (int)Mathf.Abs(piece1.Y - piece2.Y) == 1)
+            || (piece1.Y == piece2.Y && (int)Mathf.Abs(piece1.X - piece2.X) == 1);
     }
 
     public void SwapPieces(GamePiece piece1, GamePiece piece2)
@@ -251,11 +252,19 @@ public class Grid : MonoBehaviour
             pieces[piece1.X, piece1.Y] = piece2;
             pieces[piece2.X, piece2.Y] = piece1;
 
-            int piece1X = piece1.X;
-            int piece1Y = piece1.Y;
+            if (GetMatch(piece1, piece2.X, piece2.Y) != null || GetMatch(piece2, piece1.X, piece1.Y) != null)
+            {
+                int piece1X = piece1.X;
+                int piece1Y = piece1.Y;
 
-            piece1.MovableComponent.Move(piece2.X, piece2.Y, fillTime);
-            piece2.MovableComponent.Move(piece1X, piece1Y, fillTime);
+                piece1.MovableComponent.Move(piece2.X, piece2.Y, fillTime);
+                piece2.MovableComponent.Move(piece1X, piece1Y, fillTime);
+            }
+            else
+            {
+                pieces[piece1.X, piece1.Y] = piece1;
+                pieces[piece2.X, piece2.Y] = piece2;
+            }
         }
     }
 
@@ -275,5 +284,220 @@ public class Grid : MonoBehaviour
         {
             SwapPieces(pressedPiece, enteredPiece);
         }
+    }
+
+    public List<GamePiece> GetMatch(GamePiece piece, int newX, int newY)
+    {
+        if (piece.IsShaped())
+        {
+            ShapePiece.ShapeType shape = piece.ShapeComponent.Shape;
+            var horizontalPieces = new List<GamePiece>();
+            var verticalPieces = new List<GamePiece>();
+            var matchingPieces = new List<GamePiece>();
+
+            // First check horizontal
+            horizontalPieces.Add(piece);
+
+            for (int dir = 0; dir <= 1; dir++)
+            {
+                for (int xOffset = 1; xOffset < numberOfRows; xOffset++)
+                {
+                    int x;
+
+                    if (dir == 0) // Left direction
+                    {
+                        x = newX - xOffset;
+                    }
+                    else // Right
+                    {
+                        x = newX + xOffset;
+                    }
+
+                    if (x < 0 || x >= numberOfRows)
+                    {
+                        break;
+                    }
+
+                    if (pieces[x, newY].IsShaped() && pieces[x, newY].ShapeComponent.Shape == shape)
+                    {
+                        horizontalPieces.Add(pieces[x, newY]);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (horizontalPieces.Count >= 3)
+            {
+                for (int i = 0; i < horizontalPieces.Count; i++)
+                {
+                    matchingPieces.Add(horizontalPieces[i]);
+                }
+            }
+
+            //Traverse vertically in case of match with L or T shape
+            if (horizontalPieces.Count >= 3)
+            {
+                for (int i = 0; i < horizontalPieces.Count; i++)
+                {
+                    for (int dir = 0; dir <= 1; dir++)
+                    {
+                        for (int yOffset = 0; yOffset < numberOfColumns; yOffset++)
+                        {
+                            int y;
+
+                            if (dir == 0) // Up
+                            {
+                                y = newY - yOffset;
+                            }
+                            else // Down
+                            {
+                                y = newY + yOffset;
+                            }
+
+                            if (y < 0 || y >= numberOfColumns)
+                            {
+                                break;
+                            }
+
+                            if (pieces[horizontalPieces[i].X, y].IsShaped() 
+                                && pieces[horizontalPieces[i].X, y].ShapeComponent.Shape == shape)
+                            {
+                                verticalPieces.Add(pieces[horizontalPieces[i].X, y]);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (verticalPieces.Count < 2)
+                    {
+                        verticalPieces.Clear();
+                    }
+                    else
+                    {
+                        for (int j = 0; j < verticalPieces.Count; j++)
+                        {
+                            matchingPieces.Add(verticalPieces[j]);
+                        }
+
+                        break;
+                    }     
+                }
+            }
+
+            if (matchingPieces.Count >= 3)
+            {
+                return matchingPieces;
+            }
+
+            // If there are no horizontal matches we check vertically
+            horizontalPieces.Clear();
+            verticalPieces.Clear();
+            verticalPieces.Add(piece);
+
+            for (int dir = 0; dir <= 1; dir++)
+            {
+                for (int yOffset = 1; yOffset < numberOfRows; yOffset++)
+                {
+                    int y;
+
+                    if (dir == 0) // Up
+                    {
+                        y = newY - yOffset;
+                    }
+                    else // Down
+                    {
+                        y = newY + yOffset;
+                    }
+
+                    if (y < 0 || y >= numberOfColumns)
+                    {
+                        break;
+                    }
+
+                    if (pieces[newX, y].IsShaped() && pieces[newX, y].ShapeComponent.Shape == shape)
+                    {
+                        verticalPieces.Add(pieces[newX, y]);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (verticalPieces.Count >= 3)
+            {
+                for (int i = 0; i < verticalPieces.Count; i++)
+                {
+                    matchingPieces.Add(verticalPieces[i]);
+                }
+            }
+
+            //Traverse horizontally in case of match with L or T shape
+            if (verticalPieces.Count >= 3)
+            {
+                for (int i = 0; i < verticalPieces.Count; i++)
+                {
+                    for (int dir = 0; dir <= 1; dir++)
+                    {
+                        for (int xOffset = 0; xOffset < numberOfColumns; xOffset++)
+                        {
+                            int x;
+
+                            if (dir == 0) // Left
+                            {
+                                x = newX - xOffset;
+                            }
+                            else // Right
+                            {
+                                x = newX + xOffset;
+                            }
+
+                            if (x < 0 || x >= numberOfRows)
+                            {
+                                break;
+                            }
+
+                            if (pieces[x, verticalPieces[i].Y].IsShaped()
+                                && pieces[x, verticalPieces[i].Y].ShapeComponent.Shape == shape)
+                            {
+                                verticalPieces.Add(pieces[x, verticalPieces[i].Y]);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    if (horizontalPieces.Count < 2)
+                    {
+                        horizontalPieces.Clear();
+                    }
+                    else
+                    {
+                        for (int j = 0; j < horizontalPieces.Count; j++)
+                        {
+                            matchingPieces.Add(horizontalPieces[j]);
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            if (matchingPieces.Count >= 3)
+            {
+                return matchingPieces;
+            }
+        }
+
+        return null;
     }
 }
