@@ -31,6 +31,10 @@ public class Grid : MonoBehaviour
 
     private bool inverse = false;
 
+    private GamePiece pressedPiece;
+    private GamePiece enteredPiece;
+
+
     void Start()
     {
         piecePrefabDictionary = new Dictionary<PieceType, GameObject>();
@@ -179,7 +183,6 @@ public class Grid : MonoBehaviour
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -230,5 +233,47 @@ public class Grid : MonoBehaviour
         pieces[x, y].Init(x, y, this, type);
 
         return pieces[x, y];
+    }
+
+    public bool IsAjacent(GamePiece piece1, GamePiece piece2)
+    {
+        // check if two pieces are next to each other(in the same row)
+        // and their Y coords are one space of each other  
+        // or are next to each other by column and their X coords are one space of each other
+        return (piece1.X == piece2.X && (int) Mathf.Abs(piece1.Y - piece2.Y) == 1)
+            || (piece1.Y == piece2.Y && (int) Mathf.Abs(piece1.X - piece2.X) == 1);
+    }
+
+    public void SwapPieces(GamePiece piece1, GamePiece piece2)
+    {
+        if (piece1.IsMovable() && piece2.IsMovable())
+        {
+            pieces[piece1.X, piece1.Y] = piece2;
+            pieces[piece2.X, piece2.Y] = piece1;
+
+            int piece1X = piece1.X;
+            int piece1Y = piece1.Y;
+
+            piece1.MovableComponent.Move(piece2.X, piece2.Y, fillTime);
+            piece2.MovableComponent.Move(piece1X, piece1Y, fillTime);
+        }
+    }
+
+    public void PressPiece(GamePiece piece)
+    {
+        pressedPiece = piece;
+    }
+
+    public void EnterPiece(GamePiece piece)
+    {
+        enteredPiece = piece;
+    }
+
+    public void ReleasePiece()
+    {
+        if (IsAjacent(pressedPiece, enteredPiece))
+        {
+            SwapPieces(pressedPiece, enteredPiece);
+        }
     }
 }
