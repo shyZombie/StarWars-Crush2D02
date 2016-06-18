@@ -65,27 +65,6 @@ public class Grid : MonoBehaviour
             for (int y = 0; y < numberOfColumns; y++)
             {
                 SpawnNewPiece(x, y, PieceType.EMPTY);
-
-                /* GameObject newPiece = (GameObject)Instantiate(
-                    piecePrefabDictionary[PieceType.NORMAL], 
-                    new Vector3(0, 0, -1),
-                    Quaternion.identity);
-                newPiece.name = "Piece(" + x + "," + y + ")";
-                newPiece.transform.parent = transform;
-
-                pieces[x, y] = newPiece.GetComponent<GamePiece>();
-                pieces[x, y].Init(x, y, this, PieceType.NORMAL);
-
-                if (pieces[x, y].IsMovable())
-                {
-                    pieces[x, y].MovableComponent.Move(x, y);
-                }
-
-                if (pieces[x, y].IsShaped())
-                {
-                    pieces[x, y].ShapeComponent.SetShape(
-                        (ShapePiece.ShapeType)Random.Range(0, pieces[x, y].ShapeComponent.NumShapes));
-                } */
             }
         }
 
@@ -98,10 +77,19 @@ public class Grid : MonoBehaviour
     //Calls FillStep() until the board is filled
     public IEnumerator Fill()
     {
-        while (FillStep())
+        bool needsRefill = true;
+
+        while (needsRefill)
         {
-            inverse = !inverse;
             yield return new WaitForSeconds(fillTime);
+
+            while (FillStep())
+            {
+                inverse = !inverse;
+                yield return new WaitForSeconds(fillTime);
+            }
+
+            needsRefill = ClearAllValidMatches();
         }
     }
 
@@ -261,6 +249,7 @@ public class Grid : MonoBehaviour
                 piece2.MovableComponent.Move(piece1X, piece1Y, fillTime);
 
                 ClearAllValidMatches();
+                StartCoroutine(Fill());
             }
             else
             {
@@ -404,7 +393,7 @@ public class Grid : MonoBehaviour
 
             for (int dir = 0; dir <= 1; dir++)
             {
-                for (int yOffset = 1; yOffset < numberOfRows; yOffset++)
+                for (int yOffset = 1; yOffset < numberOfColumns; yOffset++)
                 {
                     int y;
 
@@ -469,7 +458,7 @@ public class Grid : MonoBehaviour
                             if (pieces[x, verticalPieces[i].Y].IsShaped()
                                 && pieces[x, verticalPieces[i].Y].ShapeComponent.Shape == shape)
                             {
-                                verticalPieces.Add(pieces[x, verticalPieces[i].Y]);
+                                horizontalPieces.Add(pieces[x, verticalPieces[i].Y]);
                             }
                             else
                             {
@@ -505,7 +494,7 @@ public class Grid : MonoBehaviour
 
     public bool ClearAllValidMatches()
     {
-        bool needRefill = false;
+        bool needsRefill = false;
 
         for (int y = 0; y < numberOfColumns; y++)
         {
@@ -521,7 +510,7 @@ public class Grid : MonoBehaviour
                         {
                             if (ClearPiece(match[i].X, match[i].Y))
                             {
-                                needRefill = true;
+                                needsRefill = true;
                             }
                         }
                     }
@@ -529,7 +518,7 @@ public class Grid : MonoBehaviour
             }
         }
 
-        return needRefill;
+        return needsRefill;
     }
 
     public bool ClearPiece(int x, int y)

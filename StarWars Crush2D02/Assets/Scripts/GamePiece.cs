@@ -58,18 +58,18 @@ public class GamePiece : MonoBehaviour
         get { return shapeComponent;}
     }
 
-    private ClearablePiece clearComponent;
+    private ClearablePiece clearableComponent;
 
     public ClearablePiece ClearableComponent
     {
-        get { return clearComponent;}
+        get { return clearableComponent;}
     }
 
     void Awake()
     {
         movableComponent = GetComponent<MovablePiece>();
         shapeComponent = GetComponent<ShapePiece>();
-        clearComponent = GetComponent<ClearablePiece>();
+        clearableComponent = GetComponent<ClearablePiece>();
     }
 
     public void Init(int _x, int _y, Grid _grid, Grid.PieceType _type)
@@ -110,6 +110,6 @@ public class GamePiece : MonoBehaviour
 
     public bool IsClearable()
     {
-        return clearComponent != null;
+        return clearableComponent != null;
     }
 }
