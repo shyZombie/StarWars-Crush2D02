@@ -10,6 +10,8 @@ public class Grid : MonoBehaviour
         EMPTY,
         NORMAL,
         OBSTACLE,
+        ROW_CLEAR,
+        COLUMN_CLEAR,
         COUNT
     }
 
@@ -249,6 +251,20 @@ public class Grid : MonoBehaviour
                 piece2.MovableComponent.Move(piece1X, piece1Y, fillTime);
 
                 ClearAllValidMatches();
+
+                if (piece1.Type == PieceType.ROW_CLEAR || piece1.Type == PieceType.COLUMN_CLEAR)
+                {
+                    ClearPiece(piece1.X, piece1.Y);
+                }
+
+                if (piece2.Type == PieceType.ROW_CLEAR || piece2.Type == PieceType.COLUMN_CLEAR)
+                {
+                    ClearPiece(piece2.X, piece2.Y);
+                }
+
+                pressedPiece = null;
+                enteredPiece = null;
+
                 StartCoroutine(Fill());
             }
             else
@@ -506,11 +522,50 @@ public class Grid : MonoBehaviour
 
                     if (match != null)
                     {
+                        PieceType specialPieceType = PieceType.COUNT;
+                        GamePiece randomPiece = match[Random.Range(0, match.Count)];
+                        int specialPieceX = randomPiece.X;
+                        int specialPieceY = randomPiece.Y;
+
+                        if (match.Count == 4)
+                        {
+                            if (pressedPiece == null || enteredPiece == null)
+                            {
+                                specialPieceType = (PieceType)Random.Range((int)PieceType.ROW_CLEAR, (int)PieceType.COLUMN_CLEAR);
+                            }
+                            else if (pressedPiece.Y == enteredPiece.Y)
+                            {
+                                specialPieceType = PieceType.ROW_CLEAR;
+                            }
+                            else
+                            {
+                                specialPieceType = PieceType.COLUMN_CLEAR;
+                            }
+                        }
+
                         for (int i = 0; i < match.Count; i++)
                         {
                             if (ClearPiece(match[i].X, match[i].Y))
                             {
                                 needsRefill = true;
+
+                                if (match[i] == pressedPiece || match[i] == enteredPiece)
+                                {
+                                    specialPieceX = match[i].X;
+                                    specialPieceY = match[i].Y;
+                                }
+                            }
+                        }
+
+                        if (specialPieceType != PieceType.COUNT)
+                        {
+                            Destroy(pieces[specialPieceX, specialPieceY]);
+                            GamePiece newPiece =  SpawnNewPiece(specialPieceX, specialPieceY, specialPieceType);
+
+                            if ((specialPieceType == PieceType.ROW_CLEAR || specialPieceType == PieceType.COLUMN_CLEAR)
+                                && newPiece.IsShaped() && match[0].IsShaped())
+                            {
+                                newPiece.ShapeComponent.SetShape(match[0].ShapeComponent.Shape);
                             }
                         }
                     }
@@ -529,9 +584,38 @@ public class Grid : MonoBehaviour
             pieces[x, y].ClearableComponent.Clear();
             SpawnNewPiece(x, y, PieceType.EMPTY);
 
+            ClearObstacle(x, y);
+
             return true;
         }
 
         return false;
+    }
+
+    public void ClearObstacle(int x, int y)
+    {
+        for (int adjacentX = x - 1; adjacentX <= x + 1; adjacentX++)
+        {
+            if (adjacentX != x && adjacentX >= 0 && adjacentX < numberOfRows)
+            {
+                if (pieces[adjacentX, y].Type == PieceType.OBSTACLE && pieces[adjacentX, y].IsClearable())
+                {
+                    pieces[adjacentX, y].ClearableComponent.Clear();
+                    SpawnNewPiece(adjacentX, y, PieceType.EMPTY);
+                }
+            }
+        }
+
+        for (int adjacentY = y - 1; adjacentY <= y + 1; adjacentY++)
+        {
+            if (adjacentY != y && adjacentY >= 0 && adjacentY < numberOfColumns)
+            {
+                if (pieces[x, adjacentY].Type == PieceType.OBSTACLE && pieces[x, adjacentY].IsClearable())
+                {
+                    pieces[x, adjacentY].ClearableComponent.Clear();
+                    SpawnNewPiece(x, adjacentY, PieceType.EMPTY);
+                }
+            }
+        }
     }
 }
